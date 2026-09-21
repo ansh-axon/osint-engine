@@ -266,20 +266,12 @@
                   <button
                     onClick={lockTerminal}
                     title="Lock Restricted Terminal"
-                    class="px-2.5 py-1.5 rounded-lg bg-rose-950/60 border border-rose-500/40 text-rose-400 text-xs hover:bg-rose-900 transition"
+                    class="px-2.5 py-1.5 rounded-lg bg-rose-950/60 border border-rose-500/40 text-rose-400 text-xs hover:bg-rose-900 transition font-orbitron"
                   >
-                    🔒 LOCK
+                    🔒 LOCK RECON
                   </button>
                 </div>
-              ) : (
-                <button
-                  onClick={() => setShowAuthModal(true)}
-                  class="cyber-btn px-4 py-1.5 rounded-lg text-xs font-orbitron font-bold text-cyan-300 tracking-wider flex items-center gap-1.5"
-                >
-                  <span>🔐</span>
-                  RESTRICTED // 2FA RECON
-                </button>
-              )}
+              ) : null}
             </div>
           </header>
 
@@ -389,36 +381,36 @@
                   </div>
                 </div>
 
-                {/* Analytical AI Models Showcase */}
+                {/* Analytical Data Models & Statistical EDA */}
                 <div class="cyber-card p-6 rounded-2xl flex flex-col justify-between">
                   <div>
                     <h3 class="text-sm font-orbitron font-bold neon-pink mb-3 flex items-center gap-2">
-                      <span>🤖</span> PREDICTIVE ML PIPELINES
+                      <span>📊</span> STATISTICAL DATA PIPELINES & EDA
                     </h3>
                     <p class="text-xs text-gray-400 leading-relaxed mb-4">
-                      Leveraging Python data analytics and mathematical classification to uncover attack surface anomalies before exploitation.
+                      High-throughput data transformations, statistical regression, and feature matrix processing built with Pandas and Node streaming.
                     </p>
 
                     <div class="space-y-2 text-xs font-mono">
                       <div class="p-2.5 bg-black/40 border border-gray-800 rounded-lg flex justify-between">
-                        <span class="text-gray-300">Feature Engineering</span>
-                        <span class="text-cyan-400 font-bold">128 Vectors</span>
+                        <span class="text-gray-300">Data Ingestion Model</span>
+                        <span class="text-cyan-400 font-bold">Parquet / JSON Streams</span>
                       </div>
                       <div class="p-2.5 bg-black/40 border border-gray-800 rounded-lg flex justify-between">
-                        <span class="text-gray-300">Clustering Algorithm</span>
-                        <span class="text-emerald-400 font-bold">DBSCAN / K-Means</span>
+                        <span class="text-gray-300">Exploratory Analysis (EDA)</span>
+                        <span class="text-emerald-400 font-bold">Variance & Correlation</span>
                       </div>
                       <div class="p-2.5 bg-black/40 border border-gray-800 rounded-lg flex justify-between">
-                        <span class="text-gray-300">Entropy Analysis</span>
-                        <span class="text-pink-400 font-bold">Shannon Entropy</span>
+                        <span class="text-gray-300">Large Dataset Capacity</span>
+                        <span class="text-pink-400 font-bold">100 GB Distributed DB</span>
                       </div>
                     </div>
                   </div>
 
                   <div class="mt-4 p-3 bg-cyan-950/20 border border-cyan-500/20 rounded-xl">
-                    <span class="text-[10px] text-cyan-400 font-bold block">OPERATOR STATEMENT:</span>
+                    <span class="text-[10px] text-cyan-400 font-bold block">ANALYTICS OPERATOR FOCUS:</span>
                     <p class="text-[11px] text-gray-400 mt-1 italic">
-                      "Data without intelligence is noise. We transform millions of network packets into actionable threat models."
+                      "Transforming terabytes of unstructured raw logs and multi-dimensional matrices into high-velocity analytical dashboards."
                     </p>
                   </div>
                 </div>
@@ -427,10 +419,40 @@
           )}
 
           {/* ======================================================== */}
-          {/* VIEW 2: CYBER DEFENSE SUITE */}
+          {/* VIEW 2: CYBER DEFENSE SUITE (HOUSES ALL SECURITY & OSINT) */}
           {/* ======================================================== */}
           {currentView === 'cybersecurity' && (
             <div class="mt-8 space-y-6">
+              {/* Security Header Banner */}
+              <div class="cyber-card p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 border-cyan-500/30">
+                <div>
+                  <h2 class="text-lg font-orbitron font-bold neon-cyan flex items-center gap-2">
+                    <span>🛡️</span> CYBER DEFENSE OPERATIONS & SOC RECON
+                  </h2>
+                  <p class="text-xs text-gray-400 font-mono mt-1">
+                    Offensive & Defensive Security Operations // Threat Modeling // Automated Recon
+                  </p>
+                </div>
+
+                {isUnlocked ? (
+                  <button
+                    onClick={() => setCurrentView('recon')}
+                    class="cyber-btn px-5 py-2.5 rounded-xl font-orbitron text-xs font-bold text-pink-300 tracking-wider flex items-center gap-2"
+                  >
+                    <span>⚡</span>
+                    OPEN UNLOCKED RECON LAB &gt;
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setShowAuthModal(true)}
+                    class="cyber-btn px-5 py-2.5 rounded-xl font-orbitron text-xs font-bold text-cyan-300 tracking-wider flex items-center gap-2 shadow-[0_0_20px_rgba(0,240,255,0.4)]"
+                  >
+                    <span>🔐</span>
+                    AUTHENTICATE TO LAUNCH RECON LAB
+                  </button>
+                )}
+              </div>
+
               <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div class="cyber-card p-6 rounded-2xl">
                   <div class="text-2xl mb-2">🛡️</div>
@@ -459,7 +481,7 @@
 
               {/* Framework compliance card */}
               <div class="cyber-card p-6 rounded-2xl">
-                <h3 class="text-sm font-orbitron font-bold neon-cyan mb-4">CYBERSECURITY FRAMEWORKS & STACK</h3>
+                <h3 class="text-sm font-orbitron font-bold neon-cyan mb-4">CYBER DEFENSE MATRICES & RECON CAPABILITIES</h3>
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-mono">
                   <div class="p-3 bg-black/50 border border-gray-800 rounded-xl">
                     <span class="text-gray-500 block text-[10px]">RECON PROTOCOL</span>
@@ -470,8 +492,8 @@
                     <span class="text-emerald-300 font-bold">RFC 6238 TOTP 2FA</span>
                   </div>
                   <div class="p-3 bg-black/50 border border-gray-800 rounded-xl">
-                    <span class="text-gray-500 block text-[10px]">ENGINE RUNTIME</span>
-                    <span class="text-pink-300 font-bold">NODE.JS // ASYNC I/O</span>
+                    <span class="text-gray-500 block text-[10px]">SUBDOMAIN ENGINE</span>
+                    <span class="text-pink-300 font-bold">HOSTS & IP MAPPING</span>
                   </div>
                   <div class="p-3 bg-black/50 border border-gray-800 rounded-xl">
                     <span class="text-gray-500 block text-[10px]">DEFENSE STANDARD</span>
