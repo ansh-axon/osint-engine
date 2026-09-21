@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CYBER-RECON // Pro OSINT Terminal</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- React & Babel CDN for dynamic client execution -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <!-- Google Fonts: Orbitron & JetBrains Mono -->
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background-color: #06080e;
+      color: #e2e8f0;
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(0, 255, 204, 0.08), transparent 50%),
+        radial-gradient(circle at 100% 50%, rgba(255, 0, 128, 0.05), transparent 40%),
+        linear-gradient(rgba(0, 255, 204, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 204, 0.03) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+    }
+    .font-orbitron { font-family: 'Orbitron', sans-serif; }
+    .neon-cyan {
+      color: #00f0ff;
+      text-shadow: 0 0 10px rgba(0, 240, 255, 0.6), 0 0 20px rgba(0, 240, 255, 0.3);
+    }
+    .neon-green {
+      color: #00ff88;
+      text-shadow: 0 0 10px rgba(0, 255, 136, 0.6);
+    }
+    .neon-pink {
+      color: #ff007f;
+      text-shadow: 0 0 10px rgba(255, 0, 127, 0.6);
+    }
+    .cyber-card {
+      background: rgba(10, 14, 26, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(0, 240, 255, 0.2);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 0 15px rgba(0, 240, 255, 0.03);
+    }
+    .cyber-card:hover {
+      border-color: rgba(0, 240, 255, 0.4);
+      box-shadow: 0 8px 32px 0 rgba(0, 240, 255, 0.1), inset 0 0 20px rgba(0, 240, 255, 0.05);
+    }
+    .cyber-btn {
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.15), rgba(255, 0, 127, 0.15));
+      border: 1px solid #00f0ff;
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+      transition: all 0.3s ease;
+    }
+    .cyber-btn:hover {
+      background: linear-gradient(135deg, #00f0ff, #ff007f);
+      color: #000;
+      box-shadow: 0 0 25px rgba(0, 240, 255, 0.8);
+      transform: translateY(-1px);
+    }
+    /* Custom Cursor & Canvas */
+    #cursor-glow {
+      position: fixed;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0, 240, 255, 0.15) 0%, rgba(255, 0, 127, 0.05) 50%, transparent 70%);
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      z-index: 1;
+      transition: opacity 0.3s ease;
+    }
+    #cyber-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+  </style>
+</head>
+<body class="min-h-screen relative overflow-x-hidden">
+  <div id="cursor-glow"></div>
+  <canvas id="cyber-canvas"></canvas>
+  <div id="root" class="relative z-10"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    function App() {
+      const [target, setTarget] = useState('github.com');
+      const [scanning, setScanning] = useState(false);
+      const [activeTab, setActiveTab] = useState('subdomains');
+      const [dnsData, setDnsData] = useState(null);
+      const [subdomainsData, setSubdomainsData] = useState(null);
+      const [whoisData, setWhoisData] = useState(null);
+      const [headersData, setHeadersData] = useState(null);
+      const [searchFilter, setSearchFilter] = useState('');
+
+      const runScan = async (domainToScan) => {
+        const domain = domainToScan || target;
+        if (!domain) return;
+        setScanning(true);
+
+        try {
+          const [dRes, sRes, wRes, hRes] = await Promise.allSettled([
+            fetch(`/api/osint/dns?domain=${domain}`).then(r => r.json()),
+            fetch(`/api/osint/subdomains?domain=${domain}`).then(r => r.json()),
+            fetch(`/api/osint/whois?domain=${domain}`).then(r => r.json()),
+            fetch(`/api/osint/headers?domain=${domain}`).then(r => r.json())
+          ]);
+
+          if (dRes.status === 'fulfilled') setDnsData(dRes.value);
+          if (sRes.status === 'fulfilled') setSubdomainsData(sRes.value);
+          if (wRes.status === 'fulfilled') setWhoisData(wRes.value);
+          if (hRes.status === 'fulfilled') setHeadersData(hRes.value);
+        } catch (e) {
+          console.error(e);
+        } finally {
+          setScanning(false);
+        }
+      };
+
+      useEffect(() => {
+        runScan('github.com');
+      }, []);
+
+      const quickScan = (d) => {
+        setTarget(d);
+        runScan(d);
+      };
+
+      return (
+        <div class="max-w-7xl mx-auto px-4 py-8">
+          {/* Top Bar / Header */}
+          <header class="flex flex-col md:flex-row items-center justify-between pb-8 border-b border-cyan-500/20 gap-4">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-400 flex items-center justify-center shadow-[0_0_15px_rgba(0,240,255,0.4)]">
+                <span class="text-xl">⚡</span>
+              </div>
+              <div>
+                <h1 class="text-2xl md:text-3xl font-orbitron font-extrabold tracking-wider neon-cyan">
+                  PRO OSINT // RECON ENGINE
+                </h1>
+                <p class="text-xs text-gray-400 flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                  OPERATIONAL // ZERO-KEY PASSIVE RECONNAISSANCE
+                </p>
+              </div>
+            </div>
+            
+            {/* Live Stats Pill */}
+            <div class="flex items-center gap-3 text-xs bg-slate-900/80 px-4 py-2 rounded-full border border-cyan-500/30">
+              <span class="text-gray-400">OPERATOR:</span>
+              <span class="font-bold text-emerald-400 font-orbitron">ANSH // SEC-OPS</span>
+              <span class="text-cyan-400 font-bold">PORT 5000</span>
+            </div>
+          </header>
+
+          {/* Search HUD */}
+          <div class="my-8">
+            <div class="cyber-card p-4 md:p-6 rounded-2xl">
+              <form onSubmit={(e) => { e.preventDefault(); runScan(); }} class="flex flex-col md:flex-row gap-3">
+                <div class="relative flex-1">
+                  <span class="absolute left-4 top-3.5 text-cyan-400 font-mono text-sm">TARGET_DOMAIN &gt;</span>
+                  <input
+                    type="text"
+                    value={target}
+                    onChange={(e) => setTarget(e.target.value)}
+                    placeholder="e.g. netflix.com, github.com, tesla.com"
+                    class="w-full pl-44 pr-4 py-3 bg-black/60 border border-cyan-500/40 rounded-xl text-cyan-300 font-mono focus:outline-none focus:border-cyan-400 focus:shadow-[0_0_20px_rgba(0,240,255,0.3)] transition"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={scanning}
+                  class="cyber-btn px-8 py-3 rounded-xl font-orbitron font-bold text-sm text-cyan-300 tracking-wider flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {scanning ? (
+                    <>
+                      <span class="inline-block animate-spin text-lg">⚙️</span>
+                      SCANNING HUD...
+                    </>
+                  ) : (
+                    <>
+                      <span>🔍</span>
+                      INITIALIZE RECON
+                    </>
+                  )}
+                </button>
+              </form>
+
+              {/* Quick Targets */}
+              <div class="mt-4 flex flex-wrap items-center gap-2 text-xs">
+                <span class="text-gray-500 uppercase tracking-widest text-[10px]">Quick Recon Targets:</span>
+                {['github.com', 'netflix.com', 'google.com', 'tesla.com', 'openai.com'].map(d => (
+                  <button
+                    key={d}
+                    onClick={() => quickScan(d)}
+                    class="px-2.5 py-1 bg-cyan-950/40 border border-cyan-500/30 rounded-md text-cyan-400 hover:bg-cyan-500 hover:text-black transition text-[11px]"
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Metric Stats Cards */}
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="cyber-card p-4 rounded-xl">
+              <p class="text-[11px] text-gray-400 font-orbitron">DISCOVERED SUBDOMAINS</p>
+              <h3 class="text-2xl md:text-3xl font-orbitron font-bold text-cyan-400 mt-1">
+                {subdomainsData ? subdomainsData.count : '--'}
+              </h3>
+              <p class="text-[10px] text-cyan-500/70 mt-1">Host mapping via public feeds</p>
+            </div>
+
+            <div class="cyber-card p-4 rounded-xl">
+              <p class="text-[11px] text-gray-400 font-orbitron">MAIL SECURITY (SPOOFING)</p>
+              <h3 class="text-lg md:text-xl font-orbitron font-bold mt-2">
+                {dnsData?.mailSecurity ? (
+                  dnsData.mailSecurity.hasSPF && dnsData.mailSecurity.hasDMARC ? (
+                    <span class="text-emerald-400 flex items-center gap-1">🛡️ PROTECTED</span>
+                  ) : (
+                    <span class="text-rose-400 flex items-center gap-1">⚠️ VULNERABLE</span>
+                  )
+                ) : '--'}
+              </h3>
+              <p class="text-[10px] text-gray-500 mt-1">SPF & DMARC Enforcement</p>
+            </div>
+
+            <div class="cyber-card p-4 rounded-xl">
+              <p class="text-[11px] text-gray-400 font-orbitron">SECURITY HEADERS</p>
+              <h3 class="text-2xl md:text-3xl font-orbitron font-bold mt-1">
+                {headersData ? (
+                  headersData.missingCount === 0 ? (
+                    <span class="text-emerald-400">A+</span>
+                  ) : (
+                    <span class="text-amber-400">{6 - headersData.missingCount}/6</span>
+                  )
+                ) : '--'}
+              </h3>
+              <p class="text-[10px] text-gray-500 mt-1">HSTS, CSP, XFO Audited</p>
+            </div>
+
+            <div class="cyber-card p-4 rounded-xl">
+              <p class="text-[11px] text-gray-400 font-orbitron">DOMAIN AGE / STATUS</p>
+              <h3 class="text-sm font-bold text-pink-400 mt-2 truncate">
+                {whoisData?.registrationDate ? whoisData.registrationDate.substring(0, 10) : 'ACTIVE'}
+              </h3>
+              <p class="text-[10px] text-gray-500 mt-1 truncate">
+                {whoisData?.nameservers?.length ? `${whoisData.nameservers.length} Nameservers` : 'Verified RDAP'}
+              </p>
+            </div>
+          </div>
+
+          {/* Navigation Tabs */}
+          <div class="flex items-center gap-2 border-b border-cyan-500/20 mb-6 pb-2 overflow-x-auto text-xs font-orbitron tracking-wider">
+            {[
+              { id: 'subdomains', label: `SUBDOMAINS (${subdomainsData?.count || 0})`, icon: '🌐' },
+              { id: 'dns', label: 'DNS & SPOOFING', icon: '📡' },
+              { id: 'headers', label: 'SECURITY HEADERS', icon: '🛡️' },
+              { id: 'whois', label: 'WHOIS / RDAP', icon: '📜' }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                class={`px-4 py-2.5 rounded-lg flex items-center gap-2 transition cursor-pointer ${
+                  activeTab === tab.id
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400 shadow-[0_0_15px_rgba(0,240,255,0.3)]'
+                    : 'text-gray-400 hover:text-gray-200 hover:bg-slate-900/50'
+                }`}
+              >
+                <span>{tab.icon}</span>
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Tab Content 1: Subdomains */}
+          {activeTab === 'subdomains' && (
+            <div class="cyber-card p-6 rounded-2xl">
+              <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-3">
+                <h2 class="text-lg font-orbitron font-bold neon-cyan flex items-center gap-2">
+                  <span>🌐</span> SUBDOMAIN DISCOVERY & IP INTELLIGENCE
+                </h2>
+                <input
+                  type="text"
+                  placeholder="Filter subdomains..."
+                  value={searchFilter}
+                  onChange={(e) => setSearchFilter(e.target.value)}
+                  class="px-3 py-1.5 bg-black/60 border border-cyan-500/30 rounded-lg text-xs text-cyan-300 font-mono focus:outline-none focus:border-cyan-400"
+                />
+              </div>
+
+              {subdomainsData?.hosts?.length ? (
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[520px] overflow-y-auto pr-2">
+                  {subdomainsData.hosts
+                    .filter(h => h.host.toLowerCase().includes(searchFilter.toLowerCase()) || h.ip.includes(searchFilter))
+                    .map((item, idx) => (
+                      <div key={idx} class="p-3 bg-black/40 border border-cyan-500/20 rounded-xl flex items-center justify-between hover:border-cyan-400/50 transition">
+                        <div class="truncate mr-2">
+                          <p class="text-xs font-mono text-cyan-200 truncate font-semibold">{item.host}</p>
+                          <span class="text-[10px] text-gray-500">RESOLVES TO</span>
+                        </div>
+                        <span class="px-2 py-0.5 bg-cyan-950/80 border border-cyan-500/30 rounded text-[11px] font-mono text-emerald-400 shrink-0">
+                          {item.ip}
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <div class="py-12 text-center text-gray-500 font-mono text-sm">
+                  {scanning ? 'Conducting deep passive scan...' : 'No subdomains found.'}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Tab Content 2: DNS */}
+          {activeTab === 'dns' && (
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="cyber-card p-6 rounded-2xl">
+                <h2 class="text-lg font-orbitron font-bold neon-green mb-4 flex items-center gap-2">
+                  <span>📡</span> A / AAAA / MX RECORDS
+                </h2>
+                <div class="space-y-4 font-mono text-xs">
+                  <div>
+                    <span class="text-cyan-400 font-bold block mb-1">A RECORDS (IPv4):</span>
+                    <div class="space-y-1">
+                      {dnsData?.records?.A?.map((ip, i) => (
+                        <div key={i} class="bg-black/50 p-2 rounded border border-gray-800 text-emerald-400">{ip}</div>
+                      )) || <span class="text-gray-500">None</span>}
+                    </div>
+                  </div>
+
+                  <div>
+                    <span class="text-cyan-400 font-bold block mb-1">MX (MAIL EXCHANGERS):</span>
+                    <div class="space-y-1">
+                      {dnsData?.records?.MX?.map((mx, i) => (
+                        <div key={i} class="bg-black/50 p-2 rounded border border-gray-800 flex justify-between">
+                          <span class="text-gray-300">{mx.exchange}</span>
+                          <span class="text-pink-400">PRIORITY: {mx.priority}</span>
+                        </div>
+                      )) || <span class="text-gray-500">None</span>}
+                    </div>
+                  </div>
+
+                  <div>
+                    <span class="text-cyan-400 font-bold block mb-1">NAMESERVERS:</span>
+                    <div class="space-y-1">
+                      {dnsData?.records?.NS?.map((ns, i) => (
+                        <div key={i} class="bg-black/50 p-2 rounded border border-gray-800 text-gray-300">{ns}</div>
+                      )) || <span class="text-gray-500">None</span>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mail Security Card */}
+              <div class="cyber-card p-6 rounded-2xl">
+                <h2 class="text-lg font-orbitron font-bold neon-pink mb-4 flex items-center gap-2">
+                  <span>🛡️</span> EMAIL SPOOFING & DMARC AUDIT
+                </h2>
+                
+                <div class="space-y-4 text-xs font-mono">
+                  <div class="p-3 bg-black/60 rounded-xl border border-gray-800">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="font-bold text-gray-300">SPF RECORD STATUS:</span>
+                      <span class={`px-2 py-0.5 rounded text-[10px] font-bold ${dnsData?.mailSecurity?.hasSPF ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/40' : 'bg-rose-950 text-rose-400'}`}>
+                        {dnsData?.mailSecurity?.hasSPF ? 'CONFIGURED' : 'MISSING'}
+                      </span>
+                    </div>
+                    <p class="text-[11px] text-gray-400">
+                      {dnsData?.mailSecurity?.hasSPF ? 'Authorized senders are declared.' : 'Risk: Domain can be easily spoofed in phishing attacks.'}
+                    </p>
+                  </div>
+
+                  <div class="p-3 bg-black/60 rounded-xl border border-gray-800">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="font-bold text-gray-300">DMARC POLICY:</span>
+                      <span class={`px-2 py-0.5 rounded text-[10px] font-bold ${dnsData?.mailSecurity?.hasDMARC ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/40' : 'bg-rose-950 text-rose-400'}`}>
+                        {dnsData?.mailSecurity?.hasDMARC ? 'ENFORCED' : 'NOT ENFORCED'}
+                      </span>
+                    </div>
+                    <div class="text-[11px] text-gray-400 break-all bg-black/40 p-2 rounded border border-gray-900 mt-2">
+                      {dnsData?.records?.DMARC?.length ? dnsData.records.DMARC.join(', ') : 'No _dmarc TXT record detected'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tab Content 3: Security Headers */}
+          {activeTab === 'headers' && (
+            <div class="cyber-card p-6 rounded-2xl">
+              <div class="flex items-center justify-between mb-6">
+                <h2 class="text-lg font-orbitron font-bold neon-cyan flex items-center gap-2">
+                  <span>🛡️</span> HTTP SECURITY HEADERS AUDIT
+                </h2>
+                <span class="text-xs px-3 py-1 bg-cyan-950/60 border border-cyan-500/30 rounded text-cyan-300 font-mono">
+                  HTTP STATUS: {headersData?.statusCode || 200}
+                </span>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
+                {headersData?.securityHeaders && Object.entries(headersData.securityHeaders).map(([header, value]) => {
+                  const isMissing = value === 'MISSING';
+                  return (
+                    <div key={header} class={`p-4 rounded-xl border ${isMissing ? 'bg-rose-950/20 border-rose-500/30' : 'bg-black/50 border-emerald-500/30'}`}>
+                      <div class="flex items-center justify-between mb-2">
+                        <span class="font-bold text-gray-200">{header}</span>
+                        <span class={`px-2 py-0.5 rounded text-[10px] font-bold ${isMissing ? 'bg-rose-950 text-rose-400 border border-rose-500' : 'bg-emerald-950 text-emerald-400 border border-emerald-500'}`}>
+                          {isMissing ? 'MISSING' : 'ACTIVE'}
+                        </span>
+                      </div>
+                      <p class="text-[11px] text-gray-400 truncate mt-1">
+                        {isMissing ? 'Vulnerability: Header is absent, potential security weakness' : value}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Tab Content 4: WHOIS */}
+          {activeTab === 'whois' && (
+            <div class="cyber-card p-6 rounded-2xl font-mono text-xs space-y-4">
+              <h2 class="text-lg font-orbitron font-bold neon-pink mb-4 flex items-center gap-2">
+                <span>📜</span> WHOIS & RDAP REGISTRATION INTEL
+              </h2>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-black/50 p-4 rounded-xl border border-gray-800 space-y-2">
+                  <p><span class="text-gray-500">DOMAIN:</span> <span class="text-cyan-300 font-bold">{whoisData?.domain}</span></p>
+                  <p><span class="text-gray-500">HANDLE:</span> <span class="text-gray-300">{whoisData?.handle || 'N/A'}</span></p>
+                  <p><span class="text-gray-500">REGISTRATION:</span> <span class="text-emerald-400">{whoisData?.registrationDate || 'Unknown'}</span></p>
+                  <p><span class="text-gray-500">EXPIRATION:</span> <span class="text-amber-400">{whoisData?.expirationDate || 'Unknown'}</span></p>
+                  <p><span class="text-gray-500">LAST CHANGED:</span> <span class="text-gray-400">{whoisData?.lastChanged || 'N/A'}</span></p>
+                </div>
+
+                <div class="bg-black/50 p-4 rounded-xl border border-gray-800">
+                  <span class="text-gray-500 block mb-2 font-bold">STATUS FLAGS:</span>
+                  <div class="flex flex-wrap gap-1">
+                    {whoisData?.status?.map((st, i) => (
+                      <span key={i} class="px-2 py-0.5 bg-slate-900 border border-gray-700 rounded text-[10px] text-cyan-400">
+                        {st}
+                      </span>
+                    )) || <span class="text-gray-500">No flags</span>}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Footer */}
+          <footer class="mt-12 text-center text-xs text-gray-500 font-mono border-t border-cyan-500/10 pt-4">
+            PRO OSINT TERMINAL // DESIGNED FOR ANSH // NODE.JS + REACT + MCP // ZERO-API-KEY ARCHITECTURE
+          </footer>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+
+  <!-- Interactive Cyber Constellation & Cursor Particle Physics Engine -->
+  <script>
+    // 1. Mouse Spotlight Tracker
+    const cursorGlow = document.getElementById('cursor-glow');
+    let mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2, radius: 150 };
+
+    window.addEventListener('mousemove', (e) => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+      cursorGlow.style.left = `${e.clientX}px`;
+      cursorGlow.style.top = `${e.clientY}px`;
+    });
+
+    // 2. Interactive Neon Node Graph Canvas
+    const canvas = document.getElementById('cyber-canvas');
+    const ctx = canvas.getContext('2d');
+
+    let particles = [];
+    const particleCount = 75;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    class Particle {
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.vx = (Math.random() - 0.5) * 1.2;
+        this.vy = (Math.random() - 0.5) * 1.2;
+        this.size = Math.random() * 2 + 1;
+        this.color = Math.random() > 0.4 ? '#00f0ff' : '#ff007f';
+      }
+
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+
+        // Bounce from walls
+        if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+        if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
+
+        // Mouse interaction (Repel / Attract effect)
+        const dx = mouse.x - this.x;
+        const dy = mouse.y - this.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < mouse.radius) {
+          const force = (mouse.radius - distance) / mouse.radius;
+          const angle = Math.atan2(dy, dx);
+          this.x -= Math.cos(angle) * force * 3;
+          this.y -= Math.sin(angle) * force * 3;
+        }
+      }
+
+      draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = this.color;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+    }
+
+    // Initialize particles
+    for (let i = 0; i < particleCount; i++) {
+      particles.push(new Particle());
+    }
+
+    // Interactive Loop
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Connect nodes with cyber constellation lines
+      for (let i = 0; i < particles.length; i++) {
+        particles[i].update();
+        particles[i].draw();
+
+        // Connect nearby nodes
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < 110) {
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            const alpha = (1 - dist / 110) * 0.25;
+            ctx.strokeStyle = `rgba(0, 240, 255, ${alpha})`;
+            ctx.lineWidth = 0.8;
+            ctx.stroke();
+          }
+        }
+
+        // Connect nodes directly to the mouse cursor!
+        const mdx = particles[i].x - mouse.x;
+        const mdy = particles[i].y - mouse.y;
+        const mdist = Math.sqrt(mdx * mdx + mdy * mdy);
+
+        if (mdist < 140) {
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(mouse.x, mouse.y);
+          const alpha = (1 - mdist / 140) * 0.45;
+          ctx.strokeStyle = `rgba(0, 255, 136, ${alpha})`;
+          ctx.lineWidth = 1.2;
+          ctx.shadowBlur = 10;
+          ctx.shadowColor = '#00ff88';
+          ctx.stroke();
+          ctx.shadowBlur = 0;
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+  </script>
+</body>
+</html>

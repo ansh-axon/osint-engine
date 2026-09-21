@@ -1,0 +1,15 @@
+{
+  "name": "pro-osint-api",
+  "version": "1.0.0",
+  "description": "Custom Zero-API-Key Pro OSINT & Threat Intel API Engine",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "cors": "^2.8.5",
+    "axios": "^1.7.9"
+  }
+}
