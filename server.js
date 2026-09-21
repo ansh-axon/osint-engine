@@ -27,6 +27,79 @@ function setCache(key, data, ttlMs = 10 * 60 * 1000) {
   cache.set(key, { data, expiry: Date.now() + ttlMs });
 }
 
+// ----------------------------------------------------
+// Google Authenticator RFC 6238 TOTP Engine
+// ----------------------------------------------------
+const crypto = require('crypto');
+const TOTP_SECRET = process.env.TOTP_SECRET || 'ANSHAXONCYBER234';
+
+function base32Decode(base32) {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  let bits = '';
+  for (let i = 0; i < base32.length; i++) {
+    const val = alphabet.indexOf(base32.charAt(i).toUpperCase());
+    if (val === -1) continue;
+    bits += val.toString(2).padStart(5, '0');
+  }
+  const bytes = [];
+  for (let i = 0; i + 8 <= bits.length; i += 8) {
+    bytes.push(parseInt(bits.substr(i, 8), 2));
+  }
+  return Buffer.from(bytes);
+}
+
+function getTOTP(secretBase32, timeStepOffset = 0) {
+  const key = base32Decode(secretBase32);
+  const epoch = Math.floor(Date.now() / 1000);
+  const timeStep = Math.floor(epoch / 30) + timeStepOffset;
+  const timeBuffer = Buffer.alloc(8);
+  timeBuffer.writeBigInt64BE(BigInt(timeStep));
+
+  const hmac = crypto.createHmac('sha1', key).update(timeBuffer).digest();
+  const offset = hmac[hmac.length - 1] & 0xf;
+  const code = ((hmac[offset] & 0x7f) << 24 |
+               (hmac[offset + 1] & 0xff) << 16 |
+               (hmac[offset + 2] & 0xff) << 8 |
+               (hmac[offset + 3] & 0xff)) % 1000000;
+  return code.toString().padStart(6, '0');
+}
+
+function verifyTOTP(token, secretBase32) {
+  if (!token) return false;
+  const clean = token.toString().trim().replace(/\s+/g, '');
+  // Drift window: -1 (past 30s), 0 (current), +1 (next 30s)
+  for (let offset of [0, -1, 1]) {
+    if (getTOTP(secretBase32, offset) === clean) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// 2FA Verification Endpoint
+app.post('/api/auth/verify-2fa', (req, res) => {
+  const { code } = req.body;
+  if (!code) {
+    return res.status(400).json({ success: false, message: 'TOTP 6-digit code is required' });
+  }
+
+  const isValid = verifyTOTP(code, TOTP_SECRET);
+  if (isValid) {
+    // Generate secure session token
+    const token = crypto.randomBytes(24).toString('hex');
+    return res.json({
+      success: true,
+      message: 'ACCESS GRANTED // LEVEL-4 CLEARANCE CONFIRMED',
+      token
+    });
+  } else {
+    return res.status(401).json({
+      success: false,
+      message: 'ACCESS DENIED // INVALID AUTHENTICATOR CODE'
+    });
+  }
+});
+
 // Built-in HTTP helper (Zero external dependency for fetch)
 function fetchJson(url, maxRedirects = 5) {
   return new Promise((resolve, reject) => {
