@@ -76,6 +76,66 @@ function verifyTOTP(token, secretBase32) {
   return false;
 }
 
+// Real-Time System & Traffic Analytics Tracker
+const os = require('os');
+const metrics = {
+  totalRequests: 0,
+  bytesTransferred: 0,
+  threatsDetected: 0,
+  scansPerformed: 0,
+  recentLogs: []
+};
+
+// Real Request Interceptor Middleware
+app.use((req, res, next) => {
+  metrics.totalRequests++;
+  const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+  const start = Date.now();
+
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    // Keep last 15 real event logs
+    metrics.recentLogs.unshift({
+      timestamp: new Date().toISOString().substring(11, 19),
+      method: req.method,
+      path: req.path,
+      ip: clientIp.split(',')[0].trim(),
+      statusCode: res.statusCode,
+      durationMs: duration
+    });
+    if (metrics.recentLogs.length > 15) metrics.recentLogs.pop();
+  });
+
+  next();
+});
+
+// Real Telemetry & Health API
+app.get('/api/analytics/realtime', (req, res) => {
+  const memUsage = process.memoryUsage();
+  const totalMem = os.totalmem();
+  const freeMem = os.freemem();
+  const usedMemPct = (((totalMem - freeMem) / totalMem) * 100).toFixed(1);
+
+  res.json({
+    realtime: true,
+    serverUptimeSeconds: Math.floor(process.uptime()),
+    totalRequests: metrics.totalRequests,
+    recentLogs: metrics.recentLogs,
+    memory: {
+      usedRssMb: (memUsage.rss / 1024 / 1024).toFixed(1),
+      systemUsedPct: `${usedMemPct}%`,
+      heapUsedMb: (memUsage.heapUsed / 1024 / 1024).toFixed(1)
+    },
+    system: {
+      platform: os.platform(),
+      nodeVersion: process.version,
+      cpuCores: os.cpus().length,
+      loadAvg: os.loadavg()[0].toFixed(2)
+    },
+    cachedKeysCount: cache.size
+  });
+});
+
 // 2FA Verification Endpoint
 app.post('/api/auth/verify-2fa', (req, res) => {
   const { code } = req.body;
@@ -85,7 +145,6 @@ app.post('/api/auth/verify-2fa', (req, res) => {
 
   const isValid = verifyTOTP(code, TOTP_SECRET);
   if (isValid) {
-    // Generate secure session token
     const token = crypto.randomBytes(24).toString('hex');
     return res.json({
       success: true,

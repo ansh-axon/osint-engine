@@ -114,12 +114,14 @@
       const [headersData, setHeadersData] = useState(null);
       const [searchFilter, setSearchFilter] = useState('');
 
-      // Telemetry simulated metrics
-      const [telemetry, setTelemetry] = useState({
-        packetsAnalyzed: 142890,
-        threatEvents: 24,
-        mitigatedRisk: '99.8%',
-        activeNodes: 12
+      // Real-time telemetry state from backend
+      const [realMetrics, setRealMetrics] = useState({
+        totalRequests: 0,
+        serverUptimeSeconds: 0,
+        memory: { usedRssMb: '0', systemUsedPct: '0%', heapUsedMb: '0' },
+        system: { platform: 'win32', nodeVersion: 'v24', cpuCores: 8, loadAvg: '0' },
+        cachedKeysCount: 0,
+        recentLogs: []
       });
 
       useEffect(() => {
@@ -128,14 +130,18 @@
           setIsUnlocked(true);
         }
 
-        const interval = setInterval(() => {
-          setTelemetry(prev => ({
-            packetsAnalyzed: prev.packetsAnalyzed + Math.floor(Math.random() * 45) + 10,
-            threatEvents: prev.threatEvents,
-            mitigatedRisk: '99.8%',
-            activeNodes: 12
-          }));
-        }, 2000);
+        const fetchLiveMetrics = async () => {
+          try {
+            const res = await fetch('/api/analytics/realtime');
+            const data = await res.json();
+            if (data.realtime) {
+              setRealMetrics(data);
+            }
+          } catch (e) {}
+        };
+
+        fetchLiveMetrics();
+        const interval = setInterval(fetchLiveMetrics, 2000);
         return () => clearInterval(interval);
       }, []);
 
@@ -282,85 +288,103 @@
           {/* ======================================================== */}
           {currentView === 'analytics' && (
             <div class="mt-8 space-y-6">
-              {/* Analytics Hero / Telemetry */}
+              {/* Real Analytics Metrics Cards */}
               <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div class="cyber-card p-4 rounded-xl">
-                  <span class="text-[10px] text-gray-500 font-orbitron block">TOTAL PACKETS ANALYZED</span>
+                  <span class="text-[10px] text-gray-500 font-orbitron block">TOTAL PROCESSED REQUESTS</span>
                   <h3 class="text-2xl font-orbitron font-bold text-cyan-400 mt-1">
-                    {telemetry.packetsAnalyzed.toLocaleString()}
+                    {realMetrics.totalRequests}
                   </h3>
-                  <span class="text-[10px] text-emerald-400">↑ Real-Time Ingestion Stream</span>
+                  <span class="text-[10px] text-emerald-400">↑ Real-Time HTTP Counter</span>
                 </div>
 
                 <div class="cyber-card p-4 rounded-xl">
-                  <span class="text-[10px] text-gray-500 font-orbitron block">ANOMALY DETECTION MODEL</span>
+                  <span class="text-[10px] text-gray-500 font-orbitron block">SYSTEM MEMORY (RAM)</span>
                   <h3 class="text-2xl font-orbitron font-bold text-emerald-400 mt-1">
-                    ISOLATION-FOREST
+                    {realMetrics.memory?.systemUsedPct || '0%'}
                   </h3>
-                  <span class="text-[10px] text-gray-400">High Confidence Matrix</span>
+                  <span class="text-[10px] text-gray-400">Node RSS: {realMetrics.memory?.usedRssMb || '0'} MB</span>
                 </div>
 
                 <div class="cyber-card p-4 rounded-xl">
-                  <span class="text-[10px] text-gray-500 font-orbitron block">THREAT EVENTS CORRELATED</span>
+                  <span class="text-[10px] text-gray-500 font-orbitron block">SERVER UPTIME</span>
                   <h3 class="text-2xl font-orbitron font-bold text-pink-400 mt-1">
-                    {telemetry.threatEvents} EVENTS
+                    {Math.floor((realMetrics.serverUptimeSeconds || 0) / 60)}m {(realMetrics.serverUptimeSeconds || 0) % 60}s
                   </h3>
-                  <span class="text-[10px] text-pink-400/80">Automated Triage Active</span>
+                  <span class="text-[10px] text-pink-400/80">Continuous Active Daemon</span>
                 </div>
 
                 <div class="cyber-card p-4 rounded-xl">
-                  <span class="text-[10px] text-gray-500 font-orbitron block">ACCURACY & MITIGATION</span>
+                  <span class="text-[10px] text-gray-500 font-orbitron block">RAM CACHED TARGETS</span>
                   <h3 class="text-2xl font-orbitron font-bold text-amber-400 mt-1">
-                    {telemetry.mitigatedRisk}
+                    {realMetrics.cachedKeysCount || 0} CACHED
                   </h3>
-                  <span class="text-[10px] text-gray-400">Zero False Positive Target</span>
+                  <span class="text-[10px] text-gray-400">Zero-Lag In-Memory DB</span>
                 </div>
               </div>
 
-              {/* Data Analytics Architecture & Visuals */}
+              {/* Real Telemetry Architecture & Live Event Stream */}
               <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="lg:col-span-2 cyber-card p-6 rounded-2xl">
                   <div class="flex items-center justify-between mb-4">
                     <h3 class="text-sm font-orbitron font-bold neon-cyan flex items-center gap-2">
-                      <span>📈</span> REAL-TIME NETWORK TELEMETRY & ATTACK VECTORS
+                      <span>📈</span> LIVE INGESTED TRAFFIC & ACCESS LOGS
                     </h3>
-                    <span class="text-[10px] text-emerald-400 px-2 py-0.5 bg-emerald-950/60 rounded border border-emerald-500/30">
-                      LIVE INGESTION
+                    <span class="text-[10px] text-emerald-400 px-2 py-0.5 bg-emerald-950/60 rounded border border-emerald-500/30 font-mono">
+                      LIVE STREAM (AUTO-REFRESH 2S)
                     </span>
                   </div>
 
-                  {/* Simulated Telemetry Visual Bar Graph */}
-                  <div class="space-y-3 font-mono text-xs mt-4">
-                    {[
-                      { label: 'DNS Tunneling & Exfiltration Checks', pct: 94, color: 'bg-cyan-500' },
-                      { label: 'HTTP/HTTPS Anomaly & Header Deviations', pct: 78, color: 'bg-emerald-500' },
-                      { label: 'Subdomain Takeover & DNS Hijack Scanning', pct: 88, color: 'bg-pink-500' },
-                      { label: 'Automated Threat Intelligence Feeds Correlation', pct: 99, color: 'bg-indigo-500' }
-                    ].map((row, idx) => (
-                      <div key={idx} class="space-y-1">
-                        <div class="flex justify-between text-gray-400 text-[11px]">
-                          <span>{row.label}</span>
-                          <span class="text-cyan-300 font-bold">{row.pct}%</span>
-                        </div>
-                        <div class="h-2 w-full bg-slate-900 rounded-full overflow-hidden border border-gray-800">
-                          <div class={`h-full ${row.color} rounded-full`} style={{ width: `${row.pct}%` }}></div>
-                        </div>
-                      </div>
-                    ))}
+                  {/* Real Live Ingestion Table */}
+                  <div class="overflow-x-auto max-h-[300px] overflow-y-auto">
+                    <table class="w-full text-left font-mono text-xs">
+                      <thead>
+                        <tr class="border-b border-gray-800 text-gray-500 text-[10px] uppercase">
+                          <th class="pb-2">Time</th>
+                          <th class="pb-2">Method</th>
+                          <th class="pb-2">Endpoint</th>
+                          <th class="pb-2">Client IP</th>
+                          <th class="pb-2">Status</th>
+                          <th class="pb-2">Latency</th>
+                        </tr>
+                      </thead>
+                      <tbody class="divide-y divide-gray-900/50">
+                        {realMetrics.recentLogs && realMetrics.recentLogs.length > 0 ? (
+                          realMetrics.recentLogs.map((log, idx) => (
+                            <tr key={idx} class="hover:bg-slate-900/30 transition">
+                              <td class="py-2 text-gray-400 text-[11px]">{log.timestamp}</td>
+                              <td class="py-2 font-bold text-cyan-400">{log.method}</td>
+                              <td class="py-2 text-gray-300 truncate max-w-[160px]">{log.path}</td>
+                              <td class="py-2 text-gray-400 text-[11px]">{log.ip}</td>
+                              <td class="py-2">
+                                <span class={`px-1.5 py-0.5 rounded text-[10px] font-bold ${log.statusCode === 200 ? 'bg-emerald-950 text-emerald-400' : 'bg-rose-950 text-rose-400'}`}>
+                                  {log.statusCode}
+                                </span>
+                              </td>
+                              <td class="py-2 text-pink-400">{log.durationMs}ms</td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan="6" class="py-6 text-center text-gray-500">Listening for incoming live traffic...</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
                   </div>
 
                   <div class="mt-6 pt-4 border-t border-gray-800 grid grid-cols-3 gap-4 text-center">
                     <div>
-                      <p class="text-[10px] text-gray-500">INGESTION RATE</p>
-                      <p class="text-sm font-bold text-cyan-300 font-orbitron">4.2 GB/HR</p>
+                      <p class="text-[10px] text-gray-500">PLATFORM</p>
+                      <p class="text-xs font-bold text-cyan-300 font-orbitron">{realMetrics.system?.platform || 'NODE'}</p>
                     </div>
                     <div>
-                      <p class="text-[10px] text-gray-500">PARALLEL THREADS</p>
-                      <p class="text-sm font-bold text-emerald-300 font-orbitron">16 ASYNC</p>
+                      <p class="text-[10px] text-gray-500">CPU CORES</p>
+                      <p class="text-xs font-bold text-emerald-300 font-orbitron">{realMetrics.system?.cpuCores || 4} CORES</p>
                     </div>
                     <div>
-                      <p class="text-[10px] text-gray-500">DATABASE BACKEND</p>
-                      <p class="text-sm font-bold text-pink-300 font-orbitron">NODE + RAM CACHE</p>
+                      <p class="text-[10px] text-gray-500">RUNTIME VERSION</p>
+                      <p class="text-xs font-bold text-pink-300 font-orbitron">{realMetrics.system?.nodeVersion || 'v24'}</p>
                     </div>
                   </div>
                 </div>
