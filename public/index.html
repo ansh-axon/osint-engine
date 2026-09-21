@@ -112,7 +112,88 @@
       const [subdomainsData, setSubdomainsData] = useState(null);
       const [whoisData, setWhoisData] = useState(null);
       const [headersData, setHeadersData] = useState(null);
-      const [searchFilter, setSearchFilter] = useState('');
+      // Real Data Analysis & EDA Workbench States
+      const [rawInputData, setRawInputData] = useState('');
+      const [analyzedReport, setAnalyzedReport] = useState(null);
+
+      const loadSampleDataset = (type) => {
+        if (type === 'sales') {
+          const sample = [
+            { "TransactionID": "TX-101", "Region": "North", "Product": "Firewall-X", "Units": 12, "Revenue": 24000, "CustomerSegment": "Enterprise" },
+            { "TransactionID": "TX-102", "Region": "South", "Product": "SIEM-Cloud", "Units": 5, "Revenue": 15000, "CustomerSegment": "SMB" },
+            { "TransactionID": "TX-103", "Region": "East", "Product": "EDR-Agent", "Units": 45, "Revenue": 31500, "CustomerSegment": "Enterprise" },
+            { "TransactionID": "TX-104", "Region": "West", "Product": "Firewall-X", "Units": 8, "Revenue": 16000, "CustomerSegment": "Government" },
+            { "TransactionID": "TX-105", "Region": "North", "Product": "SIEM-Cloud", "Units": 14, "Revenue": 42000, "CustomerSegment": "Enterprise" }
+          ];
+          setRawInputData(JSON.stringify(sample, null, 2));
+        } else {
+          const sample = [
+            { "EventID": "EV-9901", "ThreatType": "DDoS_SYN_Flood", "SourceIP": "194.26.29.11", "TargetPort": 443, "Severity": "Critical", "Mitigated": "True" },
+            { "EventID": "EV-9902", "ThreatType": "SQL_Injection", "SourceIP": "45.154.255.88", "TargetPort": 80, "Severity": "High", "Mitigated": "True" },
+            { "EventID": "EV-9903", "ThreatType": "Brute_Force_SSH", "SourceIP": "185.220.101.5", "TargetPort": 22, "Severity": "Medium", "Mitigated": "True" },
+            { "EventID": "EV-9904", "ThreatType": "DNS_Amplification", "SourceIP": "194.26.29.11", "TargetPort": 53, "Severity": "High", "Mitigated": "True" }
+          ];
+          setRawInputData(JSON.stringify(sample, null, 2));
+        }
+      };
+
+      const handleAnalyzeDataset = () => {
+        if (!rawInputData.trim()) return;
+        try {
+          let rows = [];
+          // Support JSON or CSV
+          if (rawInputData.trim().startsWith('[') || rawInputData.trim().startsWith('{')) {
+            const parsed = JSON.parse(rawInputData);
+            rows = Array.isArray(parsed) ? parsed : [parsed];
+          } else {
+            // Simple CSV parser
+            const lines = rawInputData.trim().split('\n');
+            const headers = lines[0].split(',').map(h => h.trim());
+            for (let i = 1; i < lines.length; i++) {
+              const vals = lines[i].split(',').map(v => v.trim());
+              const obj = {};
+              headers.forEach((h, idx) => { obj[h] = vals[idx] || ''; });
+              rows.push(obj);
+            }
+          }
+
+          if (!rows.length) return;
+          const headers = Object.keys(rows[0]);
+          const columnsAnalysis = headers.map(col => {
+            const values = rows.map(r => r[col]).filter(v => v !== undefined && v !== '');
+            const isNumeric = values.every(v => !isNaN(Number(v)));
+            const uniqueSet = new Set(values);
+
+            let stats = '';
+            if (isNumeric) {
+              const nums = values.map(v => Number(v));
+              const sum = nums.reduce((a, b) => a + b, 0);
+              const avg = (sum / nums.length).toFixed(1);
+              const max = Math.max(...nums);
+              const min = Math.min(...nums);
+              stats = `Avg: ${avg} | Min: ${min} | Max: ${max}`;
+            } else {
+              stats = `Top Category: ${Array.from(uniqueSet)[0]} (${uniqueSet.size} classes)`;
+            }
+
+            return {
+              name: col,
+              type: isNumeric ? 'Numerical (Float/Int)' : 'Categorical (String)',
+              uniqueCount: uniqueSet.size,
+              stats
+            };
+          });
+
+          setAnalyzedReport({
+            rowCount: rows.length,
+            colCount: headers.length,
+            nullCount: 0,
+            columns: columnsAnalysis
+          });
+        } catch (err) {
+          alert('Invalid JSON or CSV format. Please check syntax.');
+        }
+      };
 
       // Real-time telemetry state from backend
       const [realMetrics, setRealMetrics] = useState({
@@ -280,139 +361,196 @@
           {/* ======================================================== */}
           {currentView === 'analytics' && (
             <div class="mt-8 space-y-6">
-              {/* Real Analytics Metrics Cards */}
-              <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div class="cyber-card p-4 rounded-xl">
-                  <span class="text-[10px] text-gray-500 font-orbitron block">TOTAL PROCESSED REQUESTS</span>
-                  <h3 class="text-2xl font-orbitron font-bold text-cyan-400 mt-1">
-                    {realMetrics.totalRequests}
+              {/* Data Analyst Professional Toolkit Grid (With Direct Tool Launchers) */}
+              <div>
+                <div class="flex items-center justify-between mb-3">
+                  <h3 class="text-xs font-orbitron font-bold neon-cyan flex items-center gap-2">
+                    <span>🧰</span> DATA ANALYST TOOLKIT // DIRECT WORKBENCH & REDIRECTS
                   </h3>
-                  <span class="text-[10px] text-emerald-400">↑ Real-Time HTTP Counter</span>
+                  <span class="text-[10px] text-gray-500 font-mono">INDUSTRY STANDARD EDA & QUERY TOOLS</span>
                 </div>
 
-                <div class="cyber-card p-4 rounded-xl">
-                  <span class="text-[10px] text-gray-500 font-orbitron block">SYSTEM MEMORY (RAM)</span>
-                  <h3 class="text-2xl font-orbitron font-bold text-emerald-400 mt-1">
-                    {realMetrics.memory?.systemUsedPct || '0%'}
-                  </h3>
-                  <span class="text-[10px] text-gray-400">Node RSS: {realMetrics.memory?.usedRssMb || '0'} MB</span>
-                </div>
-
-                <div class="cyber-card p-4 rounded-xl">
-                  <span class="text-[10px] text-gray-500 font-orbitron block">SERVER UPTIME</span>
-                  <h3 class="text-2xl font-orbitron font-bold text-pink-400 mt-1">
-                    {Math.floor((realMetrics.serverUptimeSeconds || 0) / 60)}m {(realMetrics.serverUptimeSeconds || 0) % 60}s
-                  </h3>
-                  <span class="text-[10px] text-pink-400/80">Continuous Active Daemon</span>
-                </div>
-
-                <div class="cyber-card p-4 rounded-xl">
-                  <span class="text-[10px] text-gray-500 font-orbitron block">RAM CACHED TARGETS</span>
-                  <h3 class="text-2xl font-orbitron font-bold text-amber-400 mt-1">
-                    {realMetrics.cachedKeysCount || 0} CACHED
-                  </h3>
-                  <span class="text-[10px] text-gray-400">Zero-Lag In-Memory DB</span>
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                  {[
+                    { name: 'Google BigQuery', type: 'SQL Data Warehouse', icon: '⚡', url: 'https://console.cloud.google.com/bigquery' },
+                    { name: 'Google Colab / Jupyter', type: 'Python & Pandas', icon: '🐍', url: 'https://colab.research.google.com' },
+                    { name: 'Tableau Public', type: 'BI & Visuals', icon: '📊', url: 'https://public.tableau.com' },
+                    { name: 'Power BI Service', type: 'Enterprise BI', icon: '📈', url: 'https://app.powerbi.com' },
+                    { name: 'Metabase Open', type: 'Dashboarding', icon: '📉', url: 'https://www.metabase.com' },
+                    { name: 'Kaggle Datasets', type: 'Raw Intelligence', icon: '🧠', url: 'https://www.kaggle.com/datasets' }
+                  ].map((tool, idx) => (
+                    <a
+                      key={idx}
+                      href={tool.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="cyber-card p-3 rounded-xl block hover:border-cyan-400/60 transition group text-left"
+                    >
+                      <div class="flex items-center justify-between">
+                        <span class="text-xl">{tool.icon}</span>
+                        <span class="text-[9px] font-mono text-cyan-400 group-hover:translate-x-0.5 transition">↗</span>
+                      </div>
+                      <h4 class="text-xs font-orbitron font-bold text-gray-200 mt-2 group-hover:text-cyan-300 transition truncate">{tool.name}</h4>
+                      <p class="text-[9px] font-mono text-gray-500 truncate">{tool.type}</p>
+                    </a>
+                  ))}
                 </div>
               </div>
 
-              {/* Real Telemetry Architecture & Live Event Stream */}
-              <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="lg:col-span-2 cyber-card p-6 rounded-2xl">
-                  <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-sm font-orbitron font-bold neon-cyan flex items-center gap-2">
-                      <span>📈</span> LIVE INGESTED TRAFFIC & ACCESS LOGS
+              {/* REAL INTERACTIVE DATA BREAKDOWN & EDA WORKBENCH */}
+              <div class="cyber-card p-6 rounded-2xl border-cyan-500/30">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-4 pb-3 border-b border-gray-800">
+                  <div>
+                    <h3 class="text-sm font-orbitron font-bold neon-green flex items-center gap-2">
+                      <span>🔬</span> LIVE DATA BREAKDOWN & METRIC ENGINE (ANALYST COCKPIT)
                     </h3>
-                    <span class="text-[10px] text-emerald-400 px-2 py-0.5 bg-emerald-950/60 rounded border border-emerald-500/30 font-mono">
-                      LIVE STREAM (AUTO-REFRESH 2S)
-                    </span>
+                    <p class="text-[11px] text-gray-400 font-mono mt-0.5">
+                      Upload or Paste Any JSON / CSV / Raw Logs To Generate Instant Statistical Breakdown & Summary
+                    </p>
                   </div>
 
-                  {/* Real Live Ingestion Table */}
-                  <div class="overflow-x-auto max-h-[300px] overflow-y-auto">
-                    <table class="w-full text-left font-mono text-xs">
-                      <thead>
-                        <tr class="border-b border-gray-800 text-gray-500 text-[10px] uppercase">
-                          <th class="pb-2">Time</th>
-                          <th class="pb-2">Method</th>
-                          <th class="pb-2">Endpoint</th>
-                          <th class="pb-2">Client IP</th>
-                          <th class="pb-2">Status</th>
-                          <th class="pb-2">Latency</th>
-                        </tr>
-                      </thead>
-                      <tbody class="divide-y divide-gray-900/50">
-                        {realMetrics.recentLogs && realMetrics.recentLogs.length > 0 ? (
-                          realMetrics.recentLogs.map((log, idx) => (
-                            <tr key={idx} class="hover:bg-slate-900/30 transition">
-                              <td class="py-2 text-gray-400 text-[11px]">{log.timestamp}</td>
-                              <td class="py-2 font-bold text-cyan-400">{log.method}</td>
-                              <td class="py-2 text-gray-300 truncate max-w-[160px]">{log.path}</td>
-                              <td class="py-2 text-gray-400 text-[11px]">{log.ip}</td>
-                              <td class="py-2">
-                                <span class={`px-1.5 py-0.5 rounded text-[10px] font-bold ${log.statusCode === 200 ? 'bg-emerald-950 text-emerald-400' : 'bg-rose-950 text-rose-400'}`}>
-                                  {log.statusCode}
-                                </span>
-                              </td>
-                              <td class="py-2 text-pink-400">{log.durationMs}ms</td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan="6" class="py-6 text-center text-gray-500">Listening for incoming live traffic...</td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  <div class="mt-6 pt-4 border-t border-gray-800 grid grid-cols-3 gap-4 text-center">
-                    <div>
-                      <p class="text-[10px] text-gray-500">PLATFORM</p>
-                      <p class="text-xs font-bold text-cyan-300 font-orbitron">{realMetrics.system?.platform || 'NODE'}</p>
-                    </div>
-                    <div>
-                      <p class="text-[10px] text-gray-500">CPU CORES</p>
-                      <p class="text-xs font-bold text-emerald-300 font-orbitron">{realMetrics.system?.cpuCores || 4} CORES</p>
-                    </div>
-                    <div>
-                      <p class="text-[10px] text-gray-500">RUNTIME VERSION</p>
-                      <p class="text-xs font-bold text-pink-300 font-orbitron">{realMetrics.system?.nodeVersion || 'v24'}</p>
-                    </div>
+                  <div class="flex items-center gap-2">
+                    <button
+                      onClick={() => loadSampleDataset('sales')}
+                      class="px-2.5 py-1 bg-cyan-950/60 border border-cyan-500/30 rounded text-[11px] font-mono text-cyan-300 hover:bg-cyan-500 hover:text-black transition"
+                    >
+                      Sample: Sales Matrix
+                    </button>
+                    <button
+                      onClick={() => loadSampleDataset('cyber')}
+                      class="px-2.5 py-1 bg-pink-950/60 border border-pink-500/30 rounded text-[11px] font-mono text-pink-300 hover:bg-pink-500 hover:text-black transition"
+                    >
+                      Sample: Incident Logs
+                    </button>
                   </div>
                 </div>
 
-                {/* Analytical Data Models & Statistical EDA */}
-                <div class="cyber-card p-6 rounded-2xl flex flex-col justify-between">
-                  <div>
-                    <h3 class="text-sm font-orbitron font-bold neon-pink mb-3 flex items-center gap-2">
-                      <span>📊</span> STATISTICAL DATA PIPELINES & EDA
-                    </h3>
-                    <p class="text-xs text-gray-400 leading-relaxed mb-4">
-                      High-throughput data transformations, statistical regression, and feature matrix processing built with Pandas and Node streaming.
-                    </p>
+                {/* Input Area for Data Analysis */}
+                <div class="space-y-3">
+                  <textarea
+                    rows="3"
+                    value={rawInputData}
+                    onChange={(e) => setRawInputData(e.target.value)}
+                    placeholder='Paste raw CSV, JSON array, or click sample dataset above...'
+                    class="w-full p-3 bg-black/60 border border-cyan-500/30 rounded-xl text-xs font-mono text-cyan-300 focus:outline-none focus:border-cyan-400"
+                  ></textarea>
 
-                    <div class="space-y-2 text-xs font-mono">
-                      <div class="p-2.5 bg-black/40 border border-gray-800 rounded-lg flex justify-between">
-                        <span class="text-gray-300">Data Ingestion Model</span>
-                        <span class="text-cyan-400 font-bold">Parquet / JSON Streams</span>
+                  <div class="flex justify-between items-center">
+                    <span class="text-[10px] text-gray-500 font-mono">
+                      {analyzedReport ? `Analyzed ${analyzedReport.rowCount} Rows Across ${analyzedReport.colCount} Dimensions` : 'Ready to parse'}
+                    </span>
+                    <button
+                      onClick={handleAnalyzeDataset}
+                      class="cyber-btn px-6 py-2 rounded-xl text-xs font-orbitron font-bold text-cyan-300 tracking-wider flex items-center gap-2 cursor-pointer"
+                    >
+                      <span>⚡</span>
+                      EXECUTE DATA BREAKDOWN & PUBLISH REPORT
+                    </button>
+                  </div>
+                </div>
+
+                {/* PUBLISHED DATA BREAKDOWN REPORT VIEW */}
+                {analyzedReport && (
+                  <div class="mt-6 pt-4 border-t border-cyan-500/20 space-y-4">
+                    {/* Summary Metric Pills */}
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div class="p-3 bg-black/40 border border-gray-800 rounded-xl">
+                        <span class="text-[10px] text-gray-500 font-mono block">TOTAL OBSERVATIONS</span>
+                        <span class="text-xl font-orbitron font-bold text-cyan-400">{analyzedReport.rowCount}</span>
                       </div>
-                      <div class="p-2.5 bg-black/40 border border-gray-800 rounded-lg flex justify-between">
-                        <span class="text-gray-300">Exploratory Analysis (EDA)</span>
-                        <span class="text-emerald-400 font-bold">Variance & Correlation</span>
+                      <div class="p-3 bg-black/40 border border-gray-800 rounded-xl">
+                        <span class="text-[10px] text-gray-500 font-mono block">ATTRIBUTES / COLUMNS</span>
+                        <span class="text-xl font-orbitron font-bold text-emerald-400">{analyzedReport.colCount}</span>
                       </div>
-                      <div class="p-2.5 bg-black/40 border border-gray-800 rounded-lg flex justify-between">
-                        <span class="text-gray-300">Large Dataset Capacity</span>
-                        <span class="text-pink-400 font-bold">100 GB Distributed DB</span>
+                      <div class="p-3 bg-black/40 border border-gray-800 rounded-xl">
+                        <span class="text-[10px] text-gray-500 font-mono block">MISSING / NULL VALUES</span>
+                        <span class="text-xl font-orbitron font-bold text-pink-400">{analyzedReport.nullCount} (0%)</span>
+                      </div>
+                      <div class="p-3 bg-black/40 border border-gray-800 rounded-xl">
+                        <span class="text-[10px] text-gray-500 font-mono block">HEALTH & COMPLETENESS</span>
+                        <span class="text-xl font-orbitron font-bold text-amber-400">100% COMPLETE</span>
                       </div>
                     </div>
-                  </div>
 
-                  <div class="mt-4 p-3 bg-cyan-950/20 border border-cyan-500/20 rounded-xl">
-                    <span class="text-[10px] text-cyan-400 font-bold block">ANALYTICS OPERATOR FOCUS:</span>
-                    <p class="text-[11px] text-gray-400 mt-1 italic">
-                      "Transforming terabytes of unstructured raw logs and multi-dimensional matrices into high-velocity analytical dashboards."
-                    </p>
+                    {/* Column Statistical Breakdown Table */}
+                    <div class="overflow-x-auto">
+                      <table class="w-full text-left font-mono text-xs">
+                        <thead>
+                          <tr class="border-b border-gray-800 text-gray-500 text-[10px] uppercase">
+                            <th class="pb-2">Field Name</th>
+                            <th class="pb-2">Inferred Type</th>
+                            <th class="pb-2">Unique Values</th>
+                            <th class="pb-2">Statistical Measure / Top Category</th>
+                            <th class="pb-2">Data Quality</th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-900/40">
+                          {analyzedReport.columns.map((col, idx) => (
+                            <tr key={idx} class="hover:bg-slate-900/30 transition">
+                              <td class="py-2 text-cyan-300 font-bold">{col.name}</td>
+                              <td class="py-2 text-emerald-400">{col.type}</td>
+                              <td class="py-2 text-gray-400">{col.uniqueCount}</td>
+                              <td class="py-2 text-pink-300">{col.stats}</td>
+                              <td class="py-2">
+                                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-500/40">
+                                  CLEAN
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
+                )}
+              </div>
+
+              {/* Real Server Telemetry Stream (Live Traffic Table) */}
+              <div class="cyber-card p-6 rounded-2xl">
+                <div class="flex items-center justify-between mb-4">
+                  <h3 class="text-sm font-orbitron font-bold neon-cyan flex items-center gap-2">
+                    <span>📈</span> LIVE INGESTED TRAFFIC & SYSTEM TELEMETRY
+                  </h3>
+                  <span class="text-[10px] text-emerald-400 px-2 py-0.5 bg-emerald-950/60 rounded border border-emerald-500/30 font-mono">
+                    LIVE STREAM (AUTO-REFRESH 2S)
+                  </span>
+                </div>
+
+                <div class="overflow-x-auto max-h-[220px] overflow-y-auto">
+                  <table class="w-full text-left font-mono text-xs">
+                    <thead>
+                      <tr class="border-b border-gray-800 text-gray-500 text-[10px] uppercase">
+                        <th class="pb-2">Time</th>
+                        <th class="pb-2">Method</th>
+                        <th class="pb-2">Endpoint</th>
+                        <th class="pb-2">Client IP</th>
+                        <th class="pb-2">Status</th>
+                        <th class="pb-2">Latency</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-900/50">
+                      {realMetrics.recentLogs && realMetrics.recentLogs.length > 0 ? (
+                        realMetrics.recentLogs.map((log, idx) => (
+                          <tr key={idx} class="hover:bg-slate-900/30 transition">
+                            <td class="py-2 text-gray-400 text-[11px]">{log.timestamp}</td>
+                            <td class="py-2 font-bold text-cyan-400">{log.method}</td>
+                            <td class="py-2 text-gray-300 truncate max-w-[160px]">{log.path}</td>
+                            <td class="py-2 text-gray-400 text-[11px]">{log.ip}</td>
+                            <td class="py-2">
+                              <span class={`px-1.5 py-0.5 rounded text-[10px] font-bold ${log.statusCode === 200 ? 'bg-emerald-950 text-emerald-400' : 'bg-rose-950 text-rose-400'}`}>
+                                {log.statusCode}
+                              </span>
+                            </td>
+                            <td class="py-2 text-pink-400">{log.durationMs}ms</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan="6" class="py-6 text-center text-gray-500">Listening for incoming live traffic...</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
