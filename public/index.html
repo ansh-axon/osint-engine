@@ -370,14 +370,16 @@
                   <span class="text-[10px] text-gray-500 font-mono">INDUSTRY STANDARD EDA & QUERY TOOLS</span>
                 </div>
 
-                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-3">
                   {[
-                    { name: 'Google BigQuery', type: 'SQL Data Warehouse', icon: '⚡', url: 'https://console.cloud.google.com/bigquery' },
-                    { name: 'Google Colab / Jupyter', type: 'Python & Pandas', icon: '🐍', url: 'https://colab.research.google.com' },
-                    { name: 'Tableau Public', type: 'BI & Visuals', icon: '📊', url: 'https://public.tableau.com' },
-                    { name: 'Power BI Service', type: 'Enterprise BI', icon: '📈', url: 'https://app.powerbi.com' },
-                    { name: 'Metabase Open', type: 'Dashboarding', icon: '📉', url: 'https://www.metabase.com' },
-                    { name: 'Kaggle Datasets', type: 'Raw Intelligence', icon: '🧠', url: 'https://www.kaggle.com/datasets' }
+                    { name: 'Microsoft Excel Online', type: 'Spreadsheet & Pivot Tables', icon: '📗', url: 'https://excel.new', badge: 'SPREADSHEET' },
+                    { name: 'Python (Google Colab / Jupyter)', type: 'Pandas, NumPy, Matplotlib', icon: '🐍', url: 'https://colab.new', badge: 'PYTHON RUNTIME' },
+                    { name: 'MySQL & SQLite Playground', type: 'Database Querying & Schema', icon: '🐬', url: 'https://sqliteonline.com', badge: 'SQL DATABASE' },
+                    { name: 'Power BI / Tableau', type: 'BI Dashboards & Reports', icon: '📊', url: 'https://app.powerbi.com', badge: 'BUSINESS INTEL' },
+                    { name: 'Google BigQuery', type: 'Cloud SQL Data Warehouse', icon: '⚡', url: 'https://console.cloud.google.com/bigquery', badge: 'BIG DATA' },
+                    { name: 'Kaggle Datasets Hub', type: 'Open-Source Datasets', icon: '🧠', url: 'https://www.kaggle.com/datasets', badge: '100GB DATASETS' },
+                    { name: 'Metabase SQL Analytics', type: 'Automated Log BI', icon: '📉', url: 'https://www.metabase.com', badge: 'REPORTING' },
+                    { name: 'DB-Fiddle SQL Sandbox', type: 'MySQL 8.0 & PostgreSQL', icon: '🛠️', url: 'https://www.db-fiddle.com', badge: 'SQL SANDBOX' }
                   ].map((tool, idx) => (
                     <a
                       key={idx}
